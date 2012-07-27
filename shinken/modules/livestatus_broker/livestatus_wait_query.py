@@ -29,6 +29,7 @@ import os
 from livestatus_query import LiveStatusQuery
 from livestatus_response import LiveStatusResponse
 from livestatus_constraints import LiveStatusConstraints
+from livestatus_query_metainfo import LiveStatusQueryMetainfo, HINT_SINGLE_HOST, HINT_SINGLE_SERVICE
 
 
 class LiveStatusWaitQuery(LiveStatusQuery):
@@ -48,18 +49,22 @@ class LiveStatusWaitQuery(LiveStatusQuery):
         """Parse the lines of a livestatus request.
 
         This function looks for keywords in input lines and
-        sets the attributes of the request object
+        sets the attributes of the request object.
+        WaitCondition statements are written into the metafilter string as if they
+        were ordinary Filter:-statements. (metafilter is then used for a MetaData object)
 
         """
+        metafilter = ""
         for line in data.splitlines():
             line = line.strip()
             # Tools like NagVis send KEYWORK:option, and we prefer to have
-            # a space following the :
+            # a space following the:
             if ':' in line and not ' ' in line:
                 line = line.replace(':', ': ')
             keyword = line.split(' ')[0].rstrip(':')
             if keyword == 'GET':  # Get the name of the base table
                 _, self.table = self.split_command(line)
+                metafilter += "GET %s\n" % self.table
             elif keyword == 'WaitObject':  # Pick a specific object by name
                 _, item = self.split_option(line)
                 # It's like Filter: name = %s
@@ -75,34 +80,24 @@ class LiveStatusWaitQuery(LiveStatusQuery):
                     self.filtercolumns.append('description')
                     self.prefiltercolumns.append('description')
                     self.filter_stack.put(self.make_filter('=', 'description', service_description))
-                    try:
-                        # A WaitQuery works like an ordinary Query. But if
-                        # we already know which object we're watching for
-                        # changes, instead of scanning the entire list and
-                        # applying a Filter:, we simply reduce the list
-                        # so it has just one element.
-                        self.services = {
-                            host_name + service_description: self.services[host_name + service_description]
-                        }
-                    except:
-                        pass
+                    # A WaitQuery works like an ordinary Query. But if
+                    # we already know which object we're watching for
+                    # changes, instead of scanning the entire list and
+                    # applying a Filter:, we simply reduce the list
+                    # so it has just one element.
+                    metafilter += "Filter: host_name = %s\n" % host_name
+                    metafilter += "Filter: service_description = %s\n" % service_description
                 elif self.table == 'hosts':
                     attribute = self.strip_table_from_column('name')
                     self.filtercolumns.append('name')
                     self.prefiltercolumns.append('name')
-                    self.filter_stack.put(self.make_filter('=', 'name', object))
-                    try:
-                        # REPAIRME dict hamma nimma
-                        self.hosts = {
-                            host_name: self.hosts[host_name]
-                        }
-                    except:
-                        pass
+                    self.filter_stack.put(self.make_filter('=', 'name', item))
+                    metafilter += "Filter: host_name = %s\n" % (item,)
                 else:
                     attribute = self.strip_table_from_column('name')
                     self.filtercolumns.append('name')
                     self.prefiltercolumns.append('name')
-                    self.filter_stack.put(self.make_filter('=', 'name', object))
+                    self.filter_stack.put(self.make_filter('=', 'name', item))
                     # For the other tables this works like an ordinary query.
                     # In the future there might be more lookup-tables
             elif keyword == 'WaitTrigger':
@@ -153,7 +148,7 @@ class LiveStatusWaitQuery(LiveStatusQuery):
                 self.wait_timeout = int(self.wait_timeout) / 1000
             else:
                 # This line is not valid or not implemented
-                print "Received a line of input which i can't handle : '%s'" % line
+                print "Received a line of input which i can't handle: '%s'" % line
                 pass
         # Make columns unique
         self.filtercolumns = list(set(self.filtercolumns))
@@ -164,6 +159,8 @@ class LiveStatusWaitQuery(LiveStatusQuery):
 
         if self.table == 'log':
             self.sql_filter_stack.and_elements(self.sql_filter_stack.qsize())
+
+        self.metainfo = LiveStatusQueryMetainfo(metafilter)
 
     def launch_query(self):
         """ Prepare the request object's filter stacks """

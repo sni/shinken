@@ -26,7 +26,7 @@ function check_username(username){
       $.ajax({
         type: 'POST',
         url: '/availability',
-        data: {'value' : username},
+        data: {'value': username},
         success: user_name_is_available
       });
    }
@@ -39,7 +39,17 @@ $(document).ready(function(){
 
 </script>
 
+%if error:
+    <div class='alert alert-error span5 offset2'> {{error}}</div>
+%end
+
+%if success:
+    <div class='alert alert-success span5 offset2'> {{success}} </div>
+%end
+
+<div class='span10'>
 Please register <br/>
+</div>
 
 <form class='well span5 offset2' name='register' action='/register' METHOD='POST'>
   <div class="input-prepend">
@@ -53,7 +63,7 @@ Please register <br/>
   <div class="input-prepend">
     <span class="add-on"><i class="icon-check"></i></span><input class="span3" name="password" type="password" placeholder="Password">
   </div>
-  
+
     <a href='javascript:submit();' class='btn'> submit</a>
-    
+
 </form>

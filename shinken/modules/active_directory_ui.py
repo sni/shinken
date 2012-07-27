@@ -36,15 +36,15 @@ from shinken.basemodule import BaseModule
 print "Loaded AD module"
 
 properties = {
-    'daemons' : ['webui'],
-    'type' : 'ad_webui'
+    'daemons': ['webui', 'skonf'],
+    'type': 'ad_webui'
     }
 
 
-#called by the plugin manager
+# called by the plugin manager
 def get_instance(plugin):
     print "Get an Active Directory UI module for plugin %s" % plugin.get_name()
-    
+
     instance = AD_Webui(plugin)
     return instance
 
@@ -69,27 +69,23 @@ class AD_Webui(BaseModule):
             return
 #        self.connect()
 
-
     def connect(self):
         print "Trying to initalize the AD/Ldap connection"
         self.con = ldap.initialize(self.ldap_uri)
-        self.con.set_option(ldap.OPT_REFERRALS,0)
+        self.con.set_option(ldap.OPT_REFERRALS, 0)
 
         print "Trying to connect to AD/Ldap", self.ldap_uri, self.username, self.password, self.basedn
         # Any errors will throw an ldap.LDAPError exception
         # or related exception so you can ignore the result
         self.con.simple_bind_s(self.username, self.password)
         print "AD/Ldap Connection done"
-        
 
     def disconnect(self):
         self.con = None
 
-
     # To load the webui application
     def load(self, app):
         self.app = app
-
 
     # Give the entry for a contact
     def find_contact_entry(self, contact):
@@ -102,8 +98,8 @@ class AD_Webui(BaseModule):
         # First we try to connect, because there is no "KEEP ALIVE" option
         # available, so we will get a drop after one day...
         self.connect()
-        
-        print "AD/LDAP : search for contact", contact.get_name()
+
+        print "AD/LDAP: search for contact", contact.get_name()
         searchScope = ldap.SCOPE_SUBTREE
         ## retrieve all attributes
         retrieveAttributes = ["userPrincipalName", "thumbnailPhoto", "samaccountname", "email"]
@@ -123,7 +119,7 @@ class AD_Webui(BaseModule):
 
                 if result_type == ldap.RES_SEARCH_ENTRY:
                     (_, elts) = result_data[0]
-                    try :
+                    try:
                         account_name = elts['userPrincipalName'][0]
                     except Exception:
                         account_name = str(result_data[0])
@@ -136,13 +132,12 @@ class AD_Webui(BaseModule):
         # Always clean on exit
         finally:
             self.disconnect()
-    
 
     # One of our goal is to look for contacts and get all pictures
     def manage_initial_broks_done_brok(self, b):
         if self.con is None:
             return
-        print "AD/LDAP : manage_initial_broks_done_brok, go for pictures"
+        print "AD/LDAP: manage_initial_broks_done_brok, go for pictures"
 
         searchScope = ldap.SCOPE_SUBTREE
         ## retrieve all attributes - again adjust to your needs - see documentation for more options
@@ -172,20 +167,18 @@ class AD_Webui(BaseModule):
             except KeyError:
                 print "No photo for", c.get_name()
 
-
-
     # Try to auth a user in the ldap dir
     def check_auth(self, user, password):
         # If we do not have an ldap uri, no auth :)
         if not self.ldap_uri:
             return False
-        
+
         print "Trying to auth by ldap", user, password
 
         c = self.app.datamgr.get_contact(user)
 
         if not c:
-            print "AD/Ldap : invalid user (not founded)", user
+            print "AD/Ldap: invalid user (not founded)", user
             return False
 
         # first we need to find the principalname of this entry
@@ -193,15 +186,15 @@ class AD_Webui(BaseModule):
         # with j.gabes@google.com for example
         elts = self.find_contact_entry(c)
 
-        try :
+        try:
             account_name = elts['userPrincipalName'][0]
         except KeyError:
             print "Cannot find the userPrincipalName entry, so use the user entry"
             account_name = user
 
         local_con = ldap.initialize(self.ldap_uri)
-        local_con.set_option(ldap.OPT_REFERRALS,0)
-        
+        local_con.set_option(ldap.OPT_REFERRALS, 0)
+
         # Any errors will throw an ldap.LDAPError exception
         # or related exception so you can ignore the result
         try:
@@ -210,10 +203,9 @@ class AD_Webui(BaseModule):
             return True
         except ldap.LDAPError, exp:
             print "LMdap auth error:", exp
-        
-        # The local_con will automatically close this connection when 
+
+        # The local_con will automatically close this connection when
         # the object will be deleted, so no close need
 
         # No good? so no auth :)
         return False
-        

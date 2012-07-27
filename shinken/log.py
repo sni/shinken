@@ -2,7 +2,7 @@
 
 # -*- coding: utf-8 -*-
 
-# Copyright (C) 2009-2012 :
+# Copyright (C) 2009-2012:
 #     Gabes Jean, naparuba@gmail.com
 #     Gerhard Lausser, Gerhard.Lausser@consol.de
 #     Gregory Starck, g.starck@gmail.com
@@ -35,6 +35,7 @@ name = None
 local_log = None
 human_timestamp_log = False
 
+
 class Log:
     """Please Add a Docstring to describe the class here"""
     NOTSET   = logging.NOTSET
@@ -54,7 +55,7 @@ class Log:
         name = name_
 
         self._level = logging.NOTSET
-    
+
     @staticmethod
     def get_level_id(lvlName):
         """Convert a level name (string) to its integer value
@@ -62,7 +63,7 @@ class Log:
            Raise KeyError when name not found
         """
         return logging._levelNames[lvlName]
-    
+
     # We can have level as an int (logging.INFO) or a string INFO
     # if string, try to get the int value
     def set_level(self, level):
@@ -109,12 +110,12 @@ class Log:
         if format is None:
             lvlname = logging.getLevelName(level)
 
-            fmt = u'[%%(date)s] %s%%(name)s%%(msg)s\n' % (if_else(display_level, '%(level)s : ', ''))
+            fmt = u'[%%(date)s] %s%%(name)s%%(msg)s\n' % (if_else(display_level, '%(level)s: ', ''))
             args = {
-                'date' : if_else(human_timestamp_log, time.asctime(time.localtime(time.time())), int(time.time())),
+                'date': if_else(human_timestamp_log, time.asctime(time.localtime(time.time())), int(time.time())),
                 'level': lvlname.capitalize(),
-                'name' : if_else(name is None, '', '[%s] ' % name),
-                'msg'  : message
+                'name': if_else(name is None, '', '[%s] ' % name),
+                'msg': message
             }
             s = fmt % args
         else:
@@ -139,7 +140,6 @@ class Log:
         # If we want a local log write, do it
         if local_log is not None:
             logging.log(level, s.strip())
-
 
     def register_local_log(self, path, level=None):
         """The log can also write to a local file if needed
@@ -166,7 +166,6 @@ class Log:
         # Return the file descriptor of this file
         return basic_log_handler.stream.fileno()
 
-
     def quit(self):
         """Close the local log file at program exit"""
         global local_log
@@ -174,11 +173,9 @@ class Log:
             self.debug("Closing %s local_log" % str(local_log))
             local_log.close()
 
-
     def set_human_format(self):
         """Set the output as human format"""
         global human_timestamp_log
         human_timestamp_log = True
-
 
 logger = Log()

@@ -23,10 +23,11 @@
 # You should have received a copy of the GNU Affero General Public License
 # along with Shinken.  If not, see <http://www.gnu.org/licenses/>.
 
+"""
+The objects package contains definition classes of the different objects
+ that can be declared in configuration files.
 
-
-
-""" The objects package contains definition classes of the different objects that can be declared in configuration files. """
+ """
 
 from item import Item, Items
 from timeperiod import Timeperiod, Timeperiods
